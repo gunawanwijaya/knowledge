@@ -1,0 +1,135 @@
+# ----------------------------------------------------------------------------------------------------------------------
+# receivers
+# - `flog`  > https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/filelogreceiver#filelog-receiver
+# - `loki`  > https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/lokireceiver#loki-receiver
+# - `otlp`  > https://github.com/open-telemetry/opentelemetry-collector/tree/main/receiver/otlpreceiver#otlp-receiver
+# - `prome` > https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/prometheusreceiver#prometheus-receiver
+# ----------------------------------------------------------------------------------------------------------------------
+receivers:
+  filelog:
+    include: [/var/log/*.log]
+  namedpipe/grafana:
+    path: /logpipes/grafana
+    mode: 0666
+  namedpipe/loki-all:
+    path: /logpipes/loki-all
+    mode: 0666
+  namedpipe/mimir-all:
+    path: /logpipes/mimir-all
+    mode: 0666
+  namedpipe/tempo-all:
+    path: /logpipes/tempo-all
+    mode: 0666
+  namedpipe/pyroscope-all:
+    path: /logpipes/pyroscope-all
+    mode: 0666
+  namedpipe/minio:
+    path: /logpipes/minio
+    mode: 0666
+  namedpipe/otelcol:
+    path: /logpipes/otelcol
+    mode: 0666
+  otlp:
+    protocols:
+      http: { endpoint: otelcol:4318 }
+      grpc: { endpoint: otelcol:4317 }
+  prometheus:
+    config:
+      scrape_configs:
+        # - job_name: minio-cluster
+        #   static_configs:
+        #     - targets: [minio:9000]
+        #   metrics_path: /minio/v2/metrics/cluster
+        # - job_name: minio-bucket
+        #   static_configs:
+        #     - targets: [minio:9000]
+        #   metrics_path: /minio/v2/metrics/bucket
+        # - job_name: minio-resource
+        #   static_configs:
+        #     - targets: [minio:9000]
+        #   metrics_path: /minio/v2/metrics/resource
+        - job_name: otelcol
+          static_configs:
+            - targets: [otelcol:8888]
+        - job_name: grafana
+          static_configs:
+            - targets: [grafana:3000]
+        - job_name: loki
+          static_configs:
+            - targets: [loki-all:3100]
+        - job_name: tempo
+          static_configs:
+            - targets: [tempo-all:3300]
+        - job_name: mimir
+          static_configs:
+            - targets: [mimir-all:3200]
+        # - job_name: beyla
+        #   static_configs:
+        #     - targets: [localhost:6060]
+
+# ----------------------------------------------------------------------------------------------------------------------
+# processors
+# ----------------------------------------------------------------------------------------------------------------------
+processors:
+  batch: # Data sources: traces, metrics, logs
+  memory_limiter: # Data sources: traces, metrics, logs
+    check_interval: 5s
+    limit_mib: 400
+    spike_limit_mib: 200
+
+# ----------------------------------------------------------------------------------------------------------------------
+# exporters
+# - `loki`  > https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/exporter/lokiexporter#loki-exporter
+# - `tempo` > https://github.com/open-telemetry/opentelemetry-collector/tree/main/exporter/otlpexporter#otlp-grpc-exporter
+# - `mimir` > https://github.com/open-telemetry/opentelemetry-collector/tree/main/exporter/otlphttpexporter#otlphttp-exporter
+# ----------------------------------------------------------------------------------------------------------------------
+exporters:
+  logging:
+    verbosity: normal
+    sampling_initial: 5
+    sampling_thereafter: 200
+  loki:
+    endpoint: http://loki-all:3100/loki/api/v1/push
+  otlp/loki:
+    endpoint: loki-all:4317
+    tls: { insecure: true }
+  otlp/tempo:
+    endpoint: tempo-all:4317
+    tls: { insecure: true }
+  otlphttp/mimir:
+    endpoint: http://mimir-all:3200/otlp
+    tls: { insecure: true }
+
+# ----------------------------------------------------------------------------------------------------------------------
+# extensions
+# ----------------------------------------------------------------------------------------------------------------------
+extensions:
+  health_check: { endpoint: otelcol:13133 }
+  pprof: { endpoint: otelcol:1888 }
+  zpages: { endpoint: otelcol:55679 }
+
+# ----------------------------------------------------------------------------------------------------------------------
+# service
+# ----------------------------------------------------------------------------------------------------------------------
+service:
+  extensions: [health_check, pprof, zpages]
+  telemetry:
+    logs: # https://github.com/open-telemetry/opentelemetry-collector/blob/7666eb0/config/service.go#L41-L97
+      level: warn
+      encoding: json
+    metrics: # https://github.com/open-telemetry/opentelemetry-collector/blob/7666eb0/config/service.go#L99-L111
+      level: detailed
+      address: :8888
+  pipelines:
+    logs:
+      receivers: [otlp, namedpipe/grafana, namedpipe/loki-all, namedpipe/mimir-all, namedpipe/tempo-all, namedpipe/pyroscope-all, namedpipe/minio, namedpipe/otelcol]
+      processors: [memory_limiter, batch]
+      exporters: [loki]
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlp/tempo]
+    metrics:
+      receivers: [otlp, prometheus]
+      processors: [memory_limiter, batch]
+      exporters: [otlphttp/mimir]

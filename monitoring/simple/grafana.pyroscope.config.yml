@@ -1,0 +1,125 @@
+# https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#configuration-parameters
+# Comma-separated list of Pyroscope modules to load. The alias 'all' can be used
+# in the list to load a number of core modules and will enable single-binary
+# mode.
+# CLI flag: -target
+# target: "all"
+
+# api:
+#   base-url: ""
+
+# ----------------------------------------------------------------------------------------------------------------------
+# https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#server
+# 
+# The server block configures the HTTP and gRPC server of the launched
+# service(s).
+server:
+  # grpc_listen_address: ""
+  grpc_listen_port: 3401 # default=9095
+  # http_listen_address: ""
+  http_listen_port: 3400 # default=4040
+  log_level: warn # debug, info, warn, error
+  log_format: json # logfmt, json
+
+# ----------------------------------------------------------------------------------------------------------------------
+# https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#distributor
+# 
+# The distributor block configures the distributor.
+distributor:
+
+# ----------------------------------------------------------------------------------------------------------------------
+# https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#querier
+# 
+# The querier block configures the querier.
+querier:
+
+# ----------------------------------------------------------------------------------------------------------------------
+# https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#query_frontend
+# 
+# The query_frontend block configures the query-frontend.
+frontend:
+
+# ----------------------------------------------------------------------------------------------------------------------
+# https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#frontend_worker
+# 
+# The frontend_worker block configures the frontend-worker.
+frontend_worker:
+
+# ----------------------------------------------------------------------------------------------------------------------
+# https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#limits
+# 
+# The limits block configures default and per-tenant limits imposed by
+# components.
+limits:
+
+# ----------------------------------------------------------------------------------------------------------------------
+# https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#query_scheduler
+# 
+# The query_scheduler block configures the query-scheduler.
+query_scheduler:
+
+# ----------------------------------------------------------------------------------------------------------------------
+# https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#ingester
+# 
+# The ingester block configures the ingester.
+ingester:
+  lifecycler:
+    ring:
+      kvstore:
+        store: "memberlist"
+# ----------------------------------------------------------------------------------------------------------------------
+# https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#store_gateway
+# 
+# The store_gateway block configures the store-gateway.
+store_gateway:
+  sharding_ring:
+    kvstore:
+      store: "memberlist"
+  # bucket_store:
+  #   sync_dir: "/data/pyroscope-sync/"
+
+# ----------------------------------------------------------------------------------------------------------------------
+# https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#memberlist
+# 
+# The memberlist block configures the Gossip memberlist.
+memberlist:
+  abort_if_cluster_join_fails: false
+  bind_port: 7946
+
+pyroscopedb:
+  # data_path: "/data"
+  # max_block_duration: 1h
+  # row_group_target_size: 1342177280
+  # min_free_disk_gb: 10
+  # min_disk_available_percentage: 0.05
+  # enforcement_interval: 5m
+  # disable_enforcement: false
+
+tracing:
+  enabled: true
+
+runtime_config:
+  # period: 10s
+  # file: ""
+# ----------------------------------------------------------------------------------------------------------------------
+# https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#compactor
+# 
+# The compactor block configures the compactor.
+compactor:
+  # data_dir: "/data-compactor"
+  sharding_ring:
+    kvstore: 
+      store: "memberlist"
+
+storage:
+  backend: s3
+  s3:
+    insecure: true
+  # storage_prefix: ""
+self_profiling:
+  disable_push: true
+  # mutex_profile_fraction: 5
+  # block_profile_rate: 5
+multitenancy_enabled: false
+analytics:
+  reporting_enabled: false

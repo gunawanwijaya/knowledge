@@ -1,0 +1,258 @@
+# https://grafana.com/docs/tempo/latest/configuration/#server
+# Optional. Setting to true enables multitenancy and requires X-Scope-OrgID header on all requests.
+multitenancy_enabled: false
+
+# Optional. Setting to true enables query filtering in tag value search API `/api/v2/search/<tag>/values`.
+# If filtering is enabled, the API accepts a query parameter `q` containing a TraceQL query,
+# and returns only tag values that match the query.
+autocomplete_filtering_enabled: true
+
+# Optional. String prefix for all http api endpoints. Must include beginning slash.
+# http_api_prefix: "/"
+
+# ----------------------------------------------------------------------------------------------------------------------
+# https://grafana.com/docs/tempo/latest/configuration/#server
+#
+server:
+  # grpc_listen_address: ""
+  grpc_listen_port: 3301 # default=9095
+  # http_listen_address: ""
+  http_listen_port: 3300 # default=80
+  log_level: warn
+# ----------------------------------------------------------------------------------------------------------------------
+# https://grafana.com/docs/tempo/latest/configuration/#distributor
+#
+# Distributor config block
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc: { endpoint: "" }
+  # forwarders: []
+  log_received_spans:
+    # enabled: true
+    include_all_attributes: true
+    filter_by_status_error: false
+# ----------------------------------------------------------------------------------------------------------------------
+# https://grafana.com/docs/tempo/latest/configuration/#ingester
+#
+# Ingester configuration block
+ingester:
+  lifecycler:
+    ring:
+      replication_factor: 3
+  trace_idle_period: 10s
+  flush_check_period: 10s
+  max_block_bytes: 5_000_000
+  max_block_duration: 5m
+  complete_block_timeout: 15m
+# ----------------------------------------------------------------------------------------------------------------------
+# https://grafana.com/docs/tempo/latest/configuration/#metrics-generator
+#
+# # Metrics-generator configuration block
+metrics_generator:
+  ring:
+    kvstore:
+      store: memberlist
+  processor:
+    service_graphs:
+      wait: 10s
+      max_items: 10_000
+      workers: 5
+      # histogram_buckets: [0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8]
+      # dimensions: [""]
+      # span_multiplier_key: ""
+    span_metrics:
+      # histogram_buckets: [0.002, 0.004, 0.008, 0.016, 0.032, 0.064, 0.128, 0.256, 0.512, 1.02, 2.05, 4.10]
+      intrinsic_dimensions:
+        service: true
+        span_name: true
+        span_kind: true
+        status_code: true
+        status_message: false
+      # dimensions: [""]
+      # span_multiplier_key: ""
+  registry:
+    # collection_interval: 15s
+    # stale_duration: 15m
+    external_labels:
+      source: tempo
+      cluster: docker-compose
+    # max_label_name_length: 1024
+    # max_label_value_length: 2048
+  storage:
+    path: /tmp/tempo/metrics_generator.storage.path
+    # wal:
+    remote_write_flush_deadline: 1m
+    # DOC: https://prometheus.io/docs/prometheus/latest/configuration/configuration/#remote_write
+    remote_write:
+      - { send_exemplars: true, url: http://mimir-distributor:3300/api/v1/push }
+# ----------------------------------------------------------------------------------------------------------------------
+# https://grafana.com/docs/tempo/latest/configuration/#query-frontend
+#
+# # Query Frontend configuration block
+query_frontend:
+  max_retries: 2
+  search:
+    concurrent_jobs: 1000
+    target_bytes_per_job: 104857600
+    default_result_limit: 20
+    max_result_limit: 0
+    max_duration: 168h
+    query_backend_after: 15m
+    query_ingesters_until: 30m
+    duration_slo: 0s
+    throughput_bytes_slo: 0
+  trace_by_id:
+    query_shards: 5
+    # hedge_requests_at: 2s
+    # hedge_requests_up_to: 2
+    duration_slo: 0s
+# ----------------------------------------------------------------------------------------------------------------------
+# https://grafana.com/docs/tempo/latest/configuration/#querier
+#
+# querier config block
+querier:
+  max_concurrent_queries: 20
+  query_relevant_ingesters: false
+  trace_by_id:
+    query_timeout: 10s
+  search:
+    query_timeout: 30s
+    external_endpoints: []
+    prefer_self: 10
+    external_hedge_requests_at: 8s
+    external_hedge_requests_up_to: 2
+  frontend_worker:
+    frontend_address: tempo-query-frontend:3201
+# ----------------------------------------------------------------------------------------------------------------------
+# https://grafana.com/docs/tempo/latest/configuration/#compactor
+#
+compactor:
+  disabled: false
+  ring:
+    kvstore:
+      store: memberlist
+  compaction:
+    compaction_window: 1h
+    retention_concurrency: 10
+    max_time_per_tenant: 5m
+    compaction_cycle: 30s
+    # v2_in_buffer_bytes: 5_000_000
+    # v2_out_buffer_bytes: 20_000_000
+    # v2_prefetch_traces_count: 1_000
+    block_retention: 1h
+    compacted_block_retention: 10m
+    max_block_bytes: 100_000_000
+# ----------------------------------------------------------------------------------------------------------------------
+# https://grafana.com/docs/tempo/latest/configuration/#storage
+#
+# # Storage configuration for traces
+storage:
+  trace:
+    backend: s3 # options: gcs, s3, azure, local
+    gcs: {}
+    s3:
+      region: ""
+      insecure: true
+    azure: {}
+    blocklist_poll: 5m
+    blocklist_poll_concurrency: 50
+    blocklist_poll_fallback: true
+    blocklist_poll_tenant_index_builders: 2
+    blocklist_poll_stale_tenant_index: 0
+    blocklist_poll_jitter_ms: 0
+    # cache: redis # options "redis", "memcached"
+    # cache_min_compaction_level: 0
+    # cache_max_block_age: 0
+    search:
+      chunk_size_bytes: 1_000_000
+      prefetch_trace_count: 1_000
+      read_buffer_size_bytes: 1_048_576
+      read_buffer_count: 32
+      cache_control:
+        footer: false
+        column_index: false
+        offset_index: false
+    background_cache:
+      writeback_goroutines: 10
+      writeback_buffer: 10_000
+    memcached: null
+    redis: null
+    pool:
+      max_workers: 100
+      queue_depth: 10_000
+    wal:
+      # path: /tmp/tempo/wal
+      v2_encoding: snappy # options: none, gzip, lz4-64k, lz4-256k, lz4-1M, lz4, snappy, zstd, s2
+      search_encoding: none # options: none, gzip, lz4-64k, lz4-256k, lz4-1M, lz4, snappy, zstd, s2
+      ingestion_time_range_slack: 2m
+      version: vParquet2
+    block:
+      version: vParquet2 # options: v2, vParquet, vParquet2
+      bloom_filter_false_positive: .01
+      bloom_filter_shard_size_bytes: 100_000
+      # v2_index_downsample_bytes: 1_000_000
+      v2_index_page_size_bytes: 256_000
+      v2_encoding: zstd # options: none, gzip, lz4-64k, lz4-256k, lz4-1M, lz4, snappy, zstd, s2
+      search_encoding: snappy # options: none, gzip, lz4-64k, lz4-256k, lz4-1M, lz4, snappy, zstd, s2
+      # search_page_size_bytes: 1_000_000
+      parquet_row_group_size_bytes: 100_000_000
+# ----------------------------------------------------------------------------------------------------------------------
+# https://grafana.com/docs/tempo/latest/configuration/#memberlist
+#
+memberlist:
+  # node_name: ""
+  # randomize_node_name: true
+  # stream_timeout: 10s
+  # retransmit_factor: 2
+  # pull_push_interval: 30s
+  # gossip_interval: 1s
+  # gossip_nodes: 2
+  # gossip_to_dead_nodes_time: 30s
+  # dead_node_reclaim_time: 0s
+  # min_join_backoff: 1s
+  # max_join_backoff: 1m
+  # max_join_retries: 10
+  # rejoin_interval: 0s
+  # left_ingesters_timeout: 5m
+  # leave_timeout: 5s
+  # packet_dial_timeout: 5s
+  # packet_write_timeout: 5s
+  abort_if_cluster_join_fails: false
+  # bind_addr: []
+  bind_port: 7946
+  # join_members:
+  #   - tempo-ingester-0:7946
+  #   - tempo-ingester-1:7946
+  #   - tempo-ingester-2:7946
+# ----------------------------------------------------------------------------------------------------------------------
+# Overrides configuration block
+# overrides:
+#   # ingestion_rate_strategy: local # options: global, local
+#   # ingestion_burst_size_bytes: 20_000_000
+#   # ingestion_rate_limit_bytes: 15_000_000
+#   max_bytes_per_trace: 1_000_000
+#   # max_traces_per_user: 10_000
+#   # max_bytes_per_tag_values_query: 5_000_000
+#   # forwarders: []
+#   # metrics_generator_ring_size: 0
+#   # metrics_generator_forwarder_queue_size: 100
+#   # metrics_generator_forwarder_workers: 2
+#   # metrics_generator_processor_service_graphs_histogram_buckets: []
+#   # metrics_generator_processor_service_graphs_dimensions: []
+#   # metrics_generator_processor_span_metrics_histogram_buckets: []
+#   # metrics_generator_processor_span_metrics_intrinsic_dimensions: {}
+#   # metrics_generator_processor_span_metrics_dimensions: []
+#   # metrics_generator_max_active_series: 0
+#   # metrics_generator_collection_interval: 0s
+#   # metrics_generator_disable_collection: false
+#   # block_retention: 0s
+#   # max_search_duration: 0s
+#   # per_tenant_override_config: ""
+#   metrics_generator_processors: ["service-graphs", "span-metrics"]
+
+usage_report:
+  reporting_enabled: false
+
+cache:
