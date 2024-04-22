@@ -42,10 +42,10 @@ server:
 # https://grafana.com/docs/loki/latest/configuration/#distributor
 # 
 # Configures the distributor.
-# distributor:
-  # ring:
-  #   kvstore:
-  #     store: memberlist
+distributor:
+  ring:
+    kvstore:
+      store: memberlist
 # ----------------------------------------------------------------------------------------------------------------------
 # https://grafana.com/docs/loki/latest/configuration/#querier
 # 
@@ -56,16 +56,15 @@ querier:
   query_store_only: false
   query_ingester_only: false
   engine:
-    timeout: 5m0s
 # ----------------------------------------------------------------------------------------------------------------------
 # https://grafana.com/docs/loki/latest/configuration/#query_scheduler
 # 
 # The query_scheduler block configures the Loki query scheduler. When configured
 # it separates the tenant query queues from the query-frontend.
 query_scheduler:
-  # scheduler_ring:
-  #   kvstore:
-  #     store: memberlist
+  scheduler_ring:
+    kvstore:
+      store: memberlist
 # ----------------------------------------------------------------------------------------------------------------------
 # https://grafana.com/docs/loki/latest/configuration/#frontend
 # 
@@ -81,7 +80,6 @@ frontend:
 query_range:
   results_cache:
     cache:
-      enable_fifocache : false
       embedded_cache:
         enabled: false
 # ----------------------------------------------------------------------------------------------------------------------
@@ -89,9 +87,9 @@ query_range:
 # 
 # The ruler block configures the Loki ruler.
 ruler:
-  # ring:
-  #   kvstore:
-  #     store: memberlist
+  ring:
+    kvstore:
+      store: memberlist
   # rule_path: /tmp/loki/rules
   # alertmanager_url: localhost:9093
   wal:
@@ -112,14 +110,14 @@ ingester_client:
 # 
 # The ingester block configures the ingester and how the ingester will register
 # itself to a key value store.
-# ingester:
-#   shutdown_marker_path:
-  # lifecycler:
-    # ring:
-    #   kvstore:
-    #     store: memberlist # consul, etcd, inmemory, memberlist, multi.
+ingester:
+  lifecycler:
+    ring:
+      kvstore:
+        store: memberlist # consul, etcd, inmemory, memberlist, multi.
       # heartbeat_timeout: 1m
       # replication_factor: 3
+  # shutdown_marker_path:
   #     zone_awareness_enabled: false
   #     excluded_zones: ""
   #   num_tokens: 128
@@ -145,7 +143,7 @@ ingester_client:
   # chunk_idle_period: 30m
   # chunk_block_size: 262144
   # chunk_target_size: 1572864
-  # chunk_encoding: "gzip"
+  chunk_encoding: "gzip"
   # max_chunk_age: 2h
   # autoforget_unhealthy: false
   # sync_period: 0s
@@ -172,9 +170,9 @@ ingester_client:
 # for serving index queries without the need to constantly interact with the
 # object store.
 index_gateway:
-  # ring:
-  #   kvstore:
-  #     store: memberlist
+  ring:
+    kvstore:
+      store: memberlist
 # ----------------------------------------------------------------------------------------------------------------------
 # https://grafana.com/docs/loki/latest/configure/#bloom_compactor
 # 
@@ -213,9 +211,7 @@ storage_config:
   boltdb_shipper:
     # active_index_directory: /tmp/loki/index
     # cache_location: /tmp/loki/index_cache
-    shared_store: s3
   index_queries_cache_config:
-    enable_fifocache : false
     embedded_cache:
       enabled: false
 # ----------------------------------------------------------------------------------------------------------------------
@@ -225,15 +221,12 @@ storage_config:
 # to wait before saving them to the backing store.
 chunk_store_config:
   chunk_cache_config:
-    enable_fifocache : false
     embedded_cache:
       enabled: false
   write_dedupe_cache_config:
-    enable_fifocache : false
     embedded_cache:
       enabled: false
   cache_lookups_older_than: 0s
-  max_look_back_period: 0s
 # ----------------------------------------------------------------------------------------------------------------------
 # https://grafana.com/docs/loki/latest/configuration/#schema_config
 # 
@@ -241,9 +234,9 @@ chunk_store_config:
 schema_config:
   configs:
     - from: 2020-10-24
-      store: boltdb-shipper # options: aws, aws-dynamo, gcp, bigtable, bigtable-hashed, cassandra, boltdb or boltdb-shipper
+      store: tsdb # options: aws, aws-dynamo, gcp, bigtable, bigtable-hashed, cassandra, boltdb or boltdb-shipper
       object_store: aws # options: aws, azure, gcp, bigtable, gcs, cassandra, swift, filesystem or a named_store
-      schema: v11
+      schema: v13
       index:
         prefix: index_
         period: 24h
@@ -256,10 +249,9 @@ schema_config:
 # The compactor block configures the compactor component, which compacts index
 # shards for performance.
 compactor:
-  shared_store: s3 # gcs, s3, azure, swift, filesystem, bos
-  # compactor_ring:
-  #   kvstore:
-  #     store: memberlist
+  compactor_ring:
+    kvstore:
+      store: memberlist
 # ----------------------------------------------------------------------------------------------------------------------
 # https://grafana.com/docs/loki/latest/configuration/#limits_config
 # 
@@ -342,6 +334,9 @@ common:
   ring:
     kvstore:
       store: memberlist # consul, etcd, inmemory, memberlist, multi.
+      # multi:
+      #   primary: memberlist
+      #   secondary: inmemory
     # instance_addr: 127.0.0.1
   # compactor_address: http://loki-compactor:3100
   # compactor_grpc_address: loki-compactor:3101

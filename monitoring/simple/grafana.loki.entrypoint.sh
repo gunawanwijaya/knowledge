@@ -22,7 +22,7 @@ query_frontend="query-frontend"
 query_scheduler="query-scheduler"
 memberlist_join="ingester-0"
 compactor="compactor"
-if [ ${target} = "all" ]; then
+if [ "${target}" = "all" ]; then
     querier="all"
     query_frontend="all"
     query_scheduler="all"
@@ -31,8 +31,7 @@ if [ ${target} = "all" ]; then
 fi
 
 version=$(loki -version | head -n 1);
-    # -common.storage.s3.url="${s3_url}" \
-echo "{\"version\":\"${version}\",\"msg\":\"ok ${target}${suffix}\"}"; # > /logpipe;
+echo '{"message":"healthy","instance":"'${target}${suffix}'","version":"'${version}'"}'; # > /logpipe;
 # loki -config.file="/config.yml" -list-targets;
 loki -config.file="/config.yml" -target="${target}" \
     -config.expand-env=true \
@@ -48,7 +47,6 @@ loki -config.file="/config.yml" -target="${target}" \
     -boltdb.dir="${tmp}/boltdb" \
     -boltdb.shipper.active-index-directory="${tmp}/boltdb_index" \
     -boltdb.shipper.cache-location="${tmp}/boltdb_cache" \
-    -boltdb.shipper.compactor.working-directory="${tmp}/boltdb_compactor" \
     -tsdb.shipper.active-index-directory="${tmp}/tsdb_index" \
     -tsdb.shipper.cache-location="${tmp}/tsdb_cache" \
     -local.chunk-directory="${tmp}/local_chunk" \
@@ -60,6 +58,8 @@ loki -config.file="/config.yml" -target="${target}" \
  2>&1 | tee "/var/log/loki/loki-${target}${suffix}.log";
     # > /logpipe;
 
+# -common.storage.s3.url="${s3_url}" \
+# -boltdb.shipper.compactor.working-directory="${tmp}/boltdb_compactor" \
 # s3_url="http://${s3_access}:${s3_secret}@${s3_host}.${s3_region}:${s3_port}/${s3_bucket}";
 # -common.storage.s3.url="${s3_url}" \
 # -querier.scheduler-address="loki-${query_scheduler}:3101" \

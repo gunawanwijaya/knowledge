@@ -17,19 +17,19 @@ cp /config.yml /config.TMP.yml;
 sed -i "s|/tmp/tempo/metrics_generator.storage.path|${tmp}/metrics|"                        /config.TMP.yml;
 sed -i "s|grpc: { endpoint: \"\" }|grpc: { endpoint: \"tempo-${target}${suffix}:4317\" }|"  /config.TMP.yml;
 sed -i "s|region: \"\"|region: \"${s3_region}\"|"                                           /config.TMP.yml;
-mkdir -p /data/tempo /tmp/tempo /var/log/tempo ${tmp};
+mkdir -p /data/tempo /tmp/tempo /var/log/tempo ${tmp}/wal ${tmp}/traces ${tmp}/metrics;
 
 query_frontend="query-frontend"
 query_scheduler="query-scheduler"
 memberlist_join="ingester-0"
-if [ ${target} = "all" ]; then
+if [ "${target}" = "all" ]; then
     query_frontend="all"
     query_scheduler="all"
     memberlist_join="all"
 fi
 
 version=$(/tempo -version | head -n 1);
-echo "{\"version\":\"${version}\",\"msg\":\"ok ${target}${suffix}\"}"; # > /logpipe;
+echo '{"message":"healthy","instance":"'${target}${suffix}'","version":"'${version}'"}'; # > /logpipe;
 # /tempo -config.file="/config.TMP.yml" -help;
 # /tempo -config.file="/config.TMP.yml" -list-targets;
 /tempo -config.file="/config.TMP.yml" -target="${target}" \

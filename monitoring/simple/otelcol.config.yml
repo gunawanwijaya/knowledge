@@ -8,27 +8,6 @@
 receivers:
   filelog:
     include: [/var/log/*.log]
-  namedpipe/grafana:
-    path: /logpipes/grafana
-    mode: 0666
-  namedpipe/loki-all:
-    path: /logpipes/loki-all
-    mode: 0666
-  namedpipe/mimir-all:
-    path: /logpipes/mimir-all
-    mode: 0666
-  namedpipe/tempo-all:
-    path: /logpipes/tempo-all
-    mode: 0666
-  namedpipe/pyroscope-all:
-    path: /logpipes/pyroscope-all
-    mode: 0666
-  namedpipe/minio:
-    path: /logpipes/minio
-    mode: 0666
-  namedpipe/otelcol:
-    path: /logpipes/otelcol
-    mode: 0666
   otlp:
     protocols:
       http: { endpoint: otelcol:4318 }
@@ -122,7 +101,7 @@ service:
       address: :8888
   pipelines:
     logs:
-      receivers: [otlp, namedpipe/grafana, namedpipe/loki-all, namedpipe/mimir-all, namedpipe/tempo-all, namedpipe/pyroscope-all, namedpipe/minio, namedpipe/otelcol]
+      receivers: [otlp]
       processors: [memory_limiter, batch]
       exporters: [loki]
     traces:

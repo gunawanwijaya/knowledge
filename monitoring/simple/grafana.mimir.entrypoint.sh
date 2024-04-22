@@ -19,14 +19,14 @@ mkdir -p ${tmp}/rules ${tmp}/ruler ${tmp}/alertmanager;
 query_frontend="query-frontend"
 query_scheduler="query-scheduler"
 memberlist_join="ingester-0"
-if [ ${target} = "all" ]; then
+if [ "${target}" = "all" ]; then
     query_frontend="all"
     query_scheduler="all"
     memberlist_join="all"
 fi
 
 version=$(mimir -version | head -n 1);
-echo "{\"version\":\"${version}\",\"msg\":\"ok ${target}${suffix}\"}"; # > /logpipe;
+echo '{"message":"healthy","instance":"'${target}${suffix}'","version":"'${version}'"}'; # > /logpipe;
 mimir -config.file="/config.yml" -target="${target}" \
     -common.storage.s3.endpoint="${s3_host}:${s3_port}" \
     -common.storage.s3.region="${region}" \

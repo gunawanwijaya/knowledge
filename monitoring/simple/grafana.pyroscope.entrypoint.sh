@@ -17,15 +17,16 @@ mkdir -p /data/pyroscope /tmp/pyroscope /var/log/pyroscope /data/pyroscope/pyros
 query_frontend="query-frontend"
 query_scheduler="query-scheduler"
 memberlist_join="ingester-0"
-if [ ${target} = "all" ]; then
+if [ "${target}" = "all" ]; then
     query_frontend="all"
     query_scheduler="all"
     memberlist_join="all"
 fi
 
 version=$(pyroscope -version | head -n 1);
-echo "{\"version\":\"${version}\",\"msg\":\"ok ${target}${suffix}\"}"; # > /logpipe
+echo '{"message":"healthy","instance":"'${target}${suffix}'","version":"'${version}'"}'; # > /logpipe
 pyroscope -config.file="/config.yml" -target="${target}" \
+    -config.show_banner=false \
     -storage.s3.endpoint="${s3_host}:${s3_port}" \
     -storage.s3.region="${s3_region}" \
     -storage.s3.bucket-name="${s3_bucket}" \

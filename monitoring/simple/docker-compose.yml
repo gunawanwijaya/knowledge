@@ -24,6 +24,12 @@ services:
     entrypoint: [/entrypoint]
     environment: [TZ=Asia/Jakarta]
   # --------------------------------------------------------------------------------------------------------------------
+  busybox:
+    image: busybox
+    profiles: [busybox]
+    container_name: busybox
+    # depends_on: { minio: { condition: service_healthy } }
+  # --------------------------------------------------------------------------------------------------------------------
   minio:
     extends: { service: _ }
     profiles: [simple]
@@ -31,13 +37,13 @@ services:
     image: minio/minio:latest
     ports: ["9000", 9001:9001]
     volumes:
-      - ./.volume/data/minio:/data/minio
+      - ./.volume/data/minio:/mnt
       - ./minio.entrypoint.sh:/entrypoint:ro
     healthcheck:
       test: "/healthcheck"
-      interval: 2s
-      timeout: 30s
-      retries: 10
+      interval: 250ms
+      timeout: 750ms
+      retries: 30
     environment:
       - MC_JSON=1
       - MC_QUIET=1
@@ -78,7 +84,7 @@ services:
     extends: { service: _ }
     profiles: [simple]
     container_name: loki-all
-    image: grafana/loki:latest
+    image: grafana/loki:main
     ports: [3100:3100]
     volumes:
       - ./grafana.loki.entrypoint.sh:/entrypoint:ro
@@ -132,7 +138,7 @@ services:
     extends: { service: _ }
     profiles: [simple]
     container_name: pyroscope-all
-    image: grafana/pyroscope:latest
+    image: grafana/pyroscope:weekly-f63-c9bf04a3f
     ports: [3400:3400]
     volumes:
       - ./grafana.pyroscope.entrypoint.sh:/entrypoint:ro
