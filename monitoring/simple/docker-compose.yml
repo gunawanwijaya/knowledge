@@ -31,7 +31,7 @@ services:
     image: minio/minio:latest
     ports: ["9000", 9001:9001]
     volumes:
-      - ./.volume/log/minio:/logpipe
+      - ./.volume/data/minio:/data/minio
       - ./minio.entrypoint.sh:/entrypoint:ro
     healthcheck:
       test: "/healthcheck"
@@ -69,12 +69,10 @@ services:
     image:  grafana/grafana-enterprise:latest
     ports: [3000:3000]
     volumes:
-      - ./.volume/log/grafana:/logpipe
       - ./.volume/data/grafana.dashboard.sqlite.db:/var/lib/grafana/grafana.db
       - ./grafana.dashboard.entrypoint.sh:/entrypoint:ro
       - ./grafana.dashboard.provisioning.datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
       - ./grafana.dashboard.config.ini:/etc/grafana/grafana.ini:ro
-    # entrypoint: ['sh', '-c', "/run.sh > /logpipe"]
   # --------------------------------------------------------------------------------------------------------------------
   loki-all:
     extends: { service: _ }
@@ -83,7 +81,6 @@ services:
     image: grafana/loki:latest
     ports: [3100:3100]
     volumes:
-      - ./.volume/log/loki-all:/logpipe
       - ./grafana.loki.entrypoint.sh:/entrypoint:ro
       - ./grafana.loki.config.yml:/config.yml:ro
     secrets:
@@ -102,7 +99,6 @@ services:
     image: grafana/mimir:latest
     ports: [3200:3200]
     volumes:
-      - ./.volume/log/mimir-all:/logpipe
       - ./grafana.mimir.entrypoint.sh:/entrypoint:ro
       - ./grafana.mimir.config.yml:/config.yml:ro
     secrets:
@@ -121,7 +117,6 @@ services:
     image: grafana/tempo:latest
     ports: [3300:3300]
     volumes:
-      - ./.volume/log/tempo-all:/logpipe
       - ./grafana.tempo.entrypoint.sh:/entrypoint:ro
       - ./grafana.tempo.config.yml:/config.yml:ro
     secrets:
@@ -140,7 +135,6 @@ services:
     image: grafana/pyroscope:latest
     ports: [3400:3400]
     volumes:
-      - ./.volume/log/pyroscope-all:/logpipe
       - ./grafana.pyroscope.entrypoint.sh:/entrypoint:ro
       - ./grafana.pyroscope.config.yml:/config.yml:ro
     secrets:
@@ -167,7 +161,6 @@ services:
     - 55679:55679 # zpages extension
     working_dir: "/"
     volumes:
-      - ./.volume/log:/logpipes
       - ./otelcol.entrypoint.sh:/entrypoint:ro
       - ./otelcol.config.yml:/config.yml:ro
     command: --config=/config.yml
