@@ -26,7 +26,6 @@ fi
 version=$(pyroscope -version | head -n 1);
 echo '{"message":"healthy","instance":"'${target}${suffix}'","version":"'${version}'"}'; # > /logpipe
 pyroscope -config.file="/config.yml" -target="${target}" \
-    -config.show_banner=false \
     -storage.s3.endpoint="${s3_host}:${s3_port}" \
     -storage.s3.region="${s3_region}" \
     -storage.s3.bucket-name="${s3_bucket}" \
@@ -35,4 +34,5 @@ pyroscope -config.file="/config.yml" -target="${target}" \
     -pyroscopedb.data-path="/data/pyroscope/pyroscope-${target}${suffix}" \
     -memberlist.join="pyroscope-${memberlist_join}:7946" \
  2>&1 | tee "/var/log/pyroscope/pyroscope-${target}${suffix}.log";
+    # -config.show_banner=false \
     # > /logpipe;

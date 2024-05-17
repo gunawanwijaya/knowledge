@@ -67,10 +67,8 @@ exporters:
     verbosity: normal
     sampling_initial: 5
     sampling_thereafter: 200
-  loki:
-    endpoint: http://loki-all:3100/loki/api/v1/push
-  otlp/loki:
-    endpoint: loki-all:4317
+  otlphttp/loki:
+    endpoint: http://loki-all:3100/otlp
     tls: { insecure: true }
   otlp/tempo:
     endpoint: tempo-all:4317
@@ -103,7 +101,7 @@ service:
     logs:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [loki]
+      exporters: [otlphttp/loki]
     traces:
       receivers: [otlp]
       processors: [memory_limiter, batch]
