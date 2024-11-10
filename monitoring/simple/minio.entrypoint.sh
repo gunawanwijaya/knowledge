@@ -1,51 +1,81 @@
 #!/bin/sh
 set -e
 # ----------------------------------------------------------------------------------------------------------------------
-OUT="/dev/stdout";
+OUT=/dev/stdout;
 HEALTHY="message=healthy";
+UNHEALTHY="message=unhealthy";
 export MINIO_REGION=$(cat /run/secrets/minio.region);
 export MINIO_OPTS="--anonymous --address=:$(cat /run/secrets/minio.port) --console-address=:9001"
-[ ! -z $MC_JSON ]  && \
-    HEALTHY='{"message":"healthy"}' \
+if [ ! -z $MC_JSON ]; then
+    HEALTHY='{"level":"INFO","message":"healthy"}';
+    UNHEALTHY='{"level":"INFO","message":"unhealthy"}';
     export MINIO_OPTS="$MINIO_OPTS --json" ;
-[ ! -z $MC_QUIET ] && \
-    OUT="/dev/null" \
+fi
+if [ ! -z $MC_QUIET ]; then
+    OUT=/dev/null;
     export MINIO_OPTS="$MINIO_OPTS --quiet";
+fi
 # ----------------------------------------------------------------------------------------------------------------------
-OK="healthcheck-ok"
-echo '[ "'${OK}'"=$(mc cat "/'${OK}'") ]' >"/healthcheck";
+echo 'echo "unhealthy"; exit 1' >"/healthcheck";
 chmod +x "/healthcheck";
 # ----------------------------------------------------------------------------------------------------------------------
+
+
 setup() {
 local ALIAS="my-minio";
-if [ -z $1 ]; then # BASE SETUP ----------------------------------------------------------------------------------------
-    sleep .75;
-    local USER="$(cat ${MINIO_ROOT_USER_FILE})";
-    local PASS="$(cat ${MINIO_ROOT_PASSWORD_FILE})";
-    mc alias set "${ALIAS}" "http://0.0.0.0:9000" "${USER}" "${PASS}" >"${OUT}" 2>&1;
-    setup loki      >"${OUT}" 2>&1 && \
-    setup mimir     >"${OUT}" 2>&1 && \
-    setup tempo     >"${OUT}" 2>&1 && \
-    setup pyroscope >"${OUT}" 2>&1;
-    echo "${OK}" >"/${OK}" && echo "${HEALTHY}";
-    mc admin update "${ALIAS}" -y;
+if [ "mc" = "$1" ]; then # MINIO CLIENT SETUP --------------------------------------------------------------------------
+    if [ "$2" -le 0 ]; then
+        echo "${UNHEALTHY}";
+        kill -TERM -$$; # forcefully terminate this current session
+    else
+        local N=$2; ((N--));
+        local USER="$(cat ${MINIO_ROOT_USER_FILE})";
+        local PASS="$(cat ${MINIO_ROOT_PASSWORD_FILE})";
+        mc alias set "${ALIAS}" "http://0.0.0.0:9000" "${USER}" "${PASS}" >"${OUT}" 2>&1 || (sleep .33 && setup mc $N);
+    fi
+elif [ -z $1 ]; then # BASE SETUP --------------------------------------------------------------------------------------
+    setup mc 5      && \
+    setup loki      && \
+    setup mimir     && \
+    setup tempo     && \
+    setup pyroscope && \
+    echo 'echo "healthy"; exit 0' >"/healthcheck" && \
+    mc admin update "${ALIAS}" -y >"${OUT}" 2>&1;
+
+    /healthcheck >/dev/null 2>&1 && echo "${HEALTHY}";
 elif [ ! -z $1 ]; then # EACH SETUP ------------------------------------------------------------------------------------
     local BUCKET=$(cat /run/secrets/minio.$1-bucket);
     local ACCESS=$(cat /run/secrets/minio.$1-accesskey);
     local SECRET=$(cat /run/secrets/minio.$1-secretkey);
     local POLICY="admin-${BUCKET}";
-    trap "rm \"/${POLICY}.json\"" EXIT;
-    echo "{\"Version\": \"2012-10-17\",\"Statement\": [{\
-        \"Effect\": \"Allow\",\"Action\": \"s3:*\",\"Resource\": [\"arn:aws:s3:::${BUCKET}/*\"]\
-    }]}" >"/${POLICY}.json";
-    local STAT=$(mc stat "${ALIAS}/${BUCKET}");
-    case "${STAT}" in *"error"*) mc mb --with-lock --region="${MINIO_REGION}" "${ALIAS}/${BUCKET}";; *) echo "${STAT}";; esac
-    local USERINFO=$(mc admin user info "${ALIAS}" "${ACCESS}");
-    case "${USERINFO}" in *"error"*) mc admin user add "${ALIAS}" "${ACCESS}" "${SECRET}";; *) echo "${USERINFO}";; esac
-    local POLICYINFO=$(mc admin policy info "${ALIAS}" "${POLICY}");
-    case "${POLICYINFO}" in *"error"*) mc admin policy create "${ALIAS}" "${POLICY}" "/${POLICY}.json";; *) echo "${POLICYINFO}";; esac
-    local USERINFO=$(mc admin user info "${ALIAS}" "${ACCESS}");
-    case "${USERINFO}" in *"${POLICY}"*) echo "${USERINFO}";; *) mc admin policy attach "${ALIAS}" "${POLICY}" --user "${ACCESS}";; esac
+
+    mc stat "${ALIAS}/${BUCKET}" >"${OUT}" 2>&1 || ( \
+        mc mb --with-lock --region="${MINIO_REGION}" "${ALIAS}/${BUCKET}" >"${OUT}" 2>&1 && \
+        mc stat "${ALIAS}/${BUCKET}" >"${OUT}" 2>&1 && \
+        true
+    );
+    mc admin user info "${ALIAS}" "${ACCESS}" >"${OUT}" 2>&1 || ( \
+        mc admin user add "${ALIAS}" "${ACCESS}" "${SECRET}" >"${OUT}" 2>&1 && \
+        mc admin user info "${ALIAS}" "${ACCESS}" >"${OUT}" 2>&1 && \
+        true
+    );
+    mc admin policy info "${ALIAS}" "${POLICY}" >"${OUT}" 2>&1 || ( \
+        echo "{ \
+            \"Version\": \"2012-10-17\", \
+            \"Statement\": [{ \
+                \"Effect\": \"Allow\", \
+                \"Action\": \"s3:*\", \
+                \"Resource\": [ \
+                    \"arn:aws:s3:::${BUCKET}/*\" \
+                ] \
+            }] \
+        }" >"/${POLICY}.json" && \
+        mc admin policy create "${ALIAS}" "${POLICY}" "/${POLICY}.json" >"${OUT}" 2>&1 && \
+        mc admin policy attach "${ALIAS}" "${POLICY}" --user "${ACCESS}" >"${OUT}" 2>&1 && \
+        mc admin policy info "${ALIAS}" "${POLICY}" >"${OUT}" 2>&1 && \
+        rm "/${POLICY}.json";
+        true
+    );
 fi };
 # ----------------------------------------------------------------------------------------------------------------------
 main() {
