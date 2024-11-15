@@ -1,0 +1,60 @@
+apiVersion: 1
+datasources:
+  [
+    {
+      uid: loki-all,
+      name: loki-all,
+      type: loki,
+      url: http://loki-all:3100,
+      isDefault: false,
+      editable: true,
+      jsonData: { httpHeaderName1: X-Scope-OrgID },
+      secureJsonData: { httpHeaderValue1: org1 },
+    },
+    {
+      uid: mimir-all,
+      name: mimir-all,
+      type: prometheus,
+      url: http://mimir-all:3200/prometheus,
+      isDefault: false,
+      editable: true,
+      jsonData:
+        {
+          httpMethod: POST,
+          prometheusType: Mimir,
+          httpHeaderName1: X-Scope-OrgID,
+        },
+      secureJsonData: { httpHeaderValue1: org1 },
+    },
+    {
+      uid: tempo-all,
+      name: tempo-all,
+      type: tempo,
+      url: http://tempo-all:3300,
+      isDefault: false,
+      editable: true,
+      jsonData:
+        {
+          tracesToLogsV2: { datasourceUid: loki-all },
+          tracesToMetrics: { datasourceUid: mimir-all },
+          tracesToProfiles: { datasourceUid: pyroscope-all },
+          lokiSearch: { datasourceUid: loki-all },
+          serviceMap: { datasourceUid: mimir-all },
+          traceQuery: { timeShiftEnabled: true },
+          streamingEnabled: { search: false },
+          nodeGraph: { enabled: true },
+          httpHeaderName1: X-Scope-OrgID,
+        },
+      secureJsonData: { httpHeaderValue1: org1 },
+    },
+    {
+      uid: pyroscope-all,
+      name: pyroscope-all,
+      type: grafana-pyroscope-datasource,
+      url: http://pyroscope-all:3400,
+      isDefault: false,
+      editable: true,
+      jsonData: { httpHeaderName1: X-Scope-OrgID },
+      secureJsonData: { httpHeaderValue1: org1 },
+    },
+  ]

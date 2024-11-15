@@ -1,0 +1,286 @@
+# https://grafana.com/docs/mimir/latest/configure/configuration-parameters/#configuration-parameters
+
+server:
+  log_level: debug # debug, info, warn, error
+  log_format: json # logfmt, json
+
+api:
+  skip_label_name_validation_header_enabled: false
+  alertmanager_http_prefix: /alertmanager
+  prometheus_http_prefix: "/prometheus" # /prometheus
+
+overrides_exporter:
+  ring:
+    enabled: true
+
+ingester:
+  ring: { tokens_file_path: /var/lib/mimir/ingester-tokens }
+
+ruler:
+  rule_path: /var/lib/mimir/prom-rules
+
+ruler_storage:
+  local: { directory: /var/lib/mimir/rules }
+
+alertmanager:
+  data_dir: /var/lib/mimir/alertmanager-data
+
+alertmanager_storage:
+  local: { path: /var/lib/mimir/alertmanager }
+
+blocks_storage:
+  bucket_store: { sync_dir: /var/lib/mimir/tsdb-sync }
+  tsdb: { dir: /var/lib/mimir/tsdb }
+  filesystem: { dir: /var/lib/mimir/blocks-data }
+
+compactor:
+  sharding_ring:
+  data_dir: /var/lib/mimir/compactor
+
+store_gateway:
+  sharding_ring: { tokens_file_path: /var/lib/mimir/store-gateway-tokens }
+
+activity_tracker:
+  filepath: /var/lib/mimir/activity.tracker
+
+common: { storage: {} }
+# # When set to true, incoming HTTP requests must specify tenant ID in HTTP
+# # X-Scope-OrgId header. When set to false, tenant ID from -auth.no-auth-tenant
+# # is used instead.
+# # CLI flag: -auth.multitenancy-enabled
+# multitenancy_enabled: false
+
+# # (advanced) Tenant ID to use when multitenancy is disabled.
+# # CLI flag: -auth.no-auth-tenant
+# # no_auth_tenant: anonymous
+
+# # (advanced) How long to wait between SIGTERM and shutdown. After receiving
+# # SIGTERM, Mimir will report not-ready status via /ready endpoint.
+# # CLI flag: -shutdown-delay
+# shutdown_delay: 0s
+
+# # (experimental) Maximum number of groups allowed per user by which specified
+# # distributor and ingester metrics can be further separated.
+# # CLI flag: -max-separate-metrics-groups-per-user
+# max_separate_metrics_groups_per_user: 1_000
+
+# # (advanced) Set to true to enable all Go runtime metrics, such as go_sched_*
+# # and go_memstats_*.
+# # CLI flag: -enable-go-runtime-metrics
+# enable_go_runtime_metrics: true
+# # ----------------------------------------------------------------------------------------------------------------------
+# api:
+#   skip_label_name_validation_header_enabled: false
+#   # enable_otel_metadata_translation: true
+#   alertmanager_http_prefix: /alertmanager
+#   prometheus_http_prefix: "/prometheus" # /prometheus
+# # ----------------------------------------------------------------------------------------------------------------------
+# # https://grafana.com/docs/mimir/latest/references/configuration-parameters/#server
+# #
+# # The server block configures the HTTP and gRPC server of the launched
+# # service(s).
+# # ----------------------------------------------------------------------------------------------------------------------
+# # https://grafana.com/docs/mimir/latest/references/configuration-parameters/#distributor
+# #
+# # The distributor block configures the distributor.
+# distributor:
+#   # pool:
+#   #   client_cleanup_period: 15s
+#   #   health_check_ingesters: true
+#   ring:
+#     kvstore:
+#       store: memberlist
+#     # instance_addr: 127.0.0.1
+# # ----------------------------------------------------------------------------------------------------------------------
+# # https://grafana.com/docs/mimir/latest/references/configuration-parameters/#querier
+# #
+# # The querier block configures the querier.
+# querier:
+#   # query_store_after: 12h
+#   # max_query_into_future: 10m
+#   # store_gateway_client: null
+#   # shuffle_sharding_ingesters_enabled: true
+#   # prefer_streaming_chunks: false
+#   # prefer_streaming_chunks_from_ingesters: true
+#   # prefer_streaming_chunks_from_store_gateways: false
+#   # streaming_chunks_per_ingester_series_buffer_size: 512
+#   max_concurrent: 20
+#   timeout: 2m
+#   # max_samples: 50_000_000
+#   # default_evaluation_interval: 1m
+#   # lookback_delta: 5m
+# # ----------------------------------------------------------------------------------------------------------------------
+# # https://grafana.com/docs/mimir/latest/configure/configuration-parameters/#ingester_client
+# #
+# # The ingester_client block configures how the distributors connect to the
+# # ingesters.
+# ingester_client:
+# # ----------------------------------------------------------------------------------------------------------------------
+# # https://grafana.com/docs/mimir/latest/references/configuration-parameters/#ingester
+# #
+# # The ingester block configures the ingester.
+# ingester:
+#   ring:
+#     kvstore:
+#       store: memberlist
+#     replication_factor: 1
+#     # instance_addr: 127.0.0.1
+# # ----------------------------------------------------------------------------------------------------------------------
+# # https://grafana.com/docs/mimir/latest/references/configuration-parameters/#flusher
+# #
+# # The flusher block configures the WAL flusher target, used to manually run
+# # one-time flushes when scaling down ingesters.
+# flusher:
+#   exit_after_flush: true
+# # ----------------------------------------------------------------------------------------------------------------------
+# # https://grafana.com/docs/mimir/latest/references/configuration-parameters/#limits
+# #
+# # The limits block configures default and per-tenant limits imposed by
+# # components.
+# limits:
+# # ----------------------------------------------------------------------------------------------------------------------
+# # https://grafana.com/docs/mimir/latest/references/configuration-parameters/#frontend_worker
+# #
+# # The frontend_worker block configures the worker running within the querier,
+# # picking up and executing queries enqueued by the query-frontend or the
+# # query-scheduler.
+# frontend_worker:
+#   # frontend_address: mimir-query-frontend:3301
+#   # scheduler_address: mimir-query-scheduler:3301
+# # ----------------------------------------------------------------------------------------------------------------------
+# # https://grafana.com/docs/mimir/latest/references/configuration-parameters/#frontend
+# #
+# # The frontend block configures the query-frontend.
+# frontend:
+#   query_stats_enabled: false
+# # ----------------------------------------------------------------------------------------------------------------------
+# # https://grafana.com/docs/mimir/latest/references/configuration-parameters/#blocks_storage
+# #
+# # The blocks_storage block configures the blocks storage.
+# blocks_storage:
+#   # backend: s3 # options: s3, gcs, azure, swift, filesystem, local
+#   # storage_prefix: ""
+# # ----------------------------------------------------------------------------------------------------------------------
+# # https://grafana.com/docs/mimir/latest/references/configuration-parameters/#compactor
+# #
+# # The compactor block configures the compactor component.
+# compactor:
+#   sharding_ring:
+#     kvstore:
+#       store: "memberlist"
+# # ----------------------------------------------------------------------------------------------------------------------
+# # https://grafana.com/docs/mimir/latest/references/configuration-parameters/#store_gateway
+# #
+# # The store_gateway block configures the store-gateway component.
+# store_gateway:
+#   sharding_ring:
+#     kvstore:
+#       store: "memberlist"
+# # ----------------------------------------------------------------------------------------------------------------------
+# tenant_federation:
+#   # enabled: false
+#   # max_concurrent: 16
+#   # max_tenants: 0
+# activity_tracker:
+#   # filepath: /tmp/mimir/metrics-activity.log
+#   # max_entries: 1024
+# vault:
+#   enabled: false
+# #   url: ""
+# #   token: ""
+# #   mount_path: ""
+# # ----------------------------------------------------------------------------------------------------------------------
+# # https://grafana.com/docs/mimir/latest/references/configuration-parameters/#ruler
+# #
+# # The ruler block configures the ruler.
+# ruler:
+#   query_stats_enabled: false
+#   ring:
+#     kvstore:
+#       store: memberlist
+# # ----------------------------------------------------------------------------------------------------------------------
+# # https://grafana.com/docs/mimir/latest/references/configuration-parameters/#ruler_storage
+# #
+# # The ruler_storage block configures the ruler storage backend.
+# ruler_storage:
+#   # backend: s3 # options: s3, gcs, azure, swift, filesystem, local
+#   # storage_prefix: "ruler"
+# # ----------------------------------------------------------------------------------------------------------------------
+# # https://grafana.com/docs/mimir/latest/references/configuration-parameters/#alertmanager
+# #
+# # The alertmanager block configures the alertmanager.
+# alertmanager:
+#   sharding_ring:
+#     kvstore:
+#       store: memberlist #: consul, etcd, inmemory, memberlist, multi
+# # ----------------------------------------------------------------------------------------------------------------------
+# # https://grafana.com/docs/mimir/latest/references/configuration-parameters/#alertmanager_storage
+# #
+# # The alertmanager_storage block configures the alertmanager storage backend.
+# alertmanager_storage:
+#   # backend: s3 # options: s3, gcs, azure, swift, filesystem, local
+#   # storage_prefix: "alertmanager"
+# # ----------------------------------------------------------------------------------------------------------------------
+# runtime_config:
+#   period: 10s
+# #   file: ""
+# # ----------------------------------------------------------------------------------------------------------------------
+# # https://grafana.com/docs/mimir/latest/references/configuration-parameters/#memberlist
+# #
+# # The memberlist block configures the Gossip memberlist.
+# memberlist:
+#   abort_if_cluster_join_fails: false
+#   bind_port: 7946
+#   # join_members:
+#   # - mimir-all:7946
+#   # - mimir-ingester-0:7946
+#   # - mimir-ingester-1:7946
+#   # - mimir-ingester-2:7946
+# # ----------------------------------------------------------------------------------------------------------------------
+# # https://grafana.com/docs/mimir/latest/references/configuration-parameters/#query_scheduler
+# #
+# # The query_scheduler block configures the query-scheduler.
+# query_scheduler:
+#   ring:
+#     kvstore:
+#       store: memberlist
+# # ----------------------------------------------------------------------------------------------------------------------
+# usage_stats:
+#   enabled: true
+#   installation_mode: custom
+# # ----------------------------------------------------------------------------------------------------------------------
+# # overrides_exporter:
+# #   ring:
+# #     enabled: false
+# #     kvstore:
+# #       store: memberlist
+# #       prefix: collectors/
+# #       consul: {}
+# #       etcd: {}
+# #       multi:
+# #         primary: ""
+# #         secondary: ""
+# #         mirror_enabled: false
+# #         mirror_timeout: 2s
+# #     heartbeat_period: 15s
+# #     heartbeat_timeout: 1m
+# #     instance_id: ""
+# #     instance_interface_names: []
+# #     instance_port: 0
+# #     instance_addr: ""
+# #     instance_enable_ipv6: false
+# #     wait_stability_min_duration: 0s
+# #     wait_stability_max_duration: 5m
+# # ----------------------------------------------------------------------------------------------------------------------
+# # https://grafana.com/docs/mimir/latest/configure/configuration-parameters/#common
+# #
+# # The common block holds configurations that configure multiple components at a
+# # time.
+# common:
+#   # storage:
+#   #   backend: s3
+#   #   s3: { insecure: true }
+
+# # (experimental) Enables optimized marshaling of timeseries.
+# # CLI flag: -timeseries-unmarshal-caching-optimization-enabled
+# timeseries_unmarshal_caching_optimization_enabled: true

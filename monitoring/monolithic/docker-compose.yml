@@ -1,0 +1,227 @@
+services:
+  _:
+    profiles: [_]
+    user: ${UID}:${GID}
+    entrypoint: [/entrypoint]
+    environment:
+      TZ: Asia/Jakarta
+      STDOUT: /dev/null
+  minio: # -------------------------------------------------------------------------------------------------------------
+    extends: { service: _ }
+    profiles: [monolithic, loki, mimir, pyroscope, tempo]
+    image: minio/minio:latest
+    ports: [9000, 9001:9001]
+    volumes:
+      - ./.volume/data/minio:/mnt
+      - ./minio.entrypoint.sh:/entrypoint:ro
+    healthcheck:
+      test: /healthcheck
+      interval: 250ms
+      timeout: 750ms
+      retries: 30
+    environment:
+      MC_JSON: 1
+      MC_QUIET: 1
+      MINIO_ROOT_USER_FILE: /run/secrets/minio.rootuser
+      MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio.rootpass
+    secrets:
+      - minio.rootuser
+      - minio.rootpass
+      - minio.host
+      - minio.port
+      - minio.region
+      - minio.loki-bucket-blocks
+      - minio.loki-bucket-ruler
+      - minio.loki-accesskey
+      - minio.loki-secretkey
+      - minio.mimir-bucket-alertmanager
+      - minio.mimir-bucket-blocks
+      - minio.mimir-bucket-ruler
+      - minio.mimir-accesskey
+      - minio.mimir-secretkey
+      - minio.pyroscope-bucket-blocks
+      - minio.pyroscope-accesskey
+      - minio.pyroscope-secretkey
+      - minio.tempo-bucket-blocks
+      - minio.tempo-accesskey
+      - minio.tempo-secretkey
+  grafana: # -----------------------------------------------------------------------------------------------------------
+    extends: { service: _ }
+    profiles: [monolithic, loki, mimir, pyroscope, tempo]
+    image: grafana/grafana-enterprise:11.3.0
+    ports: [3000:3000]
+    volumes:
+      - ./.volume/data/grafana/var/lib/grafana:/var/lib/grafana
+      - ./grafana.dashboard.entrypoint.sh:/entrypoint:ro
+      - ./grafana.dashboard.config.ini:/etc/grafana/grafana.ini:ro
+      - ./grafana.dashboard.provisioning.datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+  loki-all: # ----------------------------------------------------------------------------------------------------------
+    extends: { service: _ }
+    profiles: [monolithic, loki]
+    ports: [3100:3100]
+    environment:
+      SERVICE: loki
+      TARGET: all
+      HTTP_LISTEN_PORT: 3100
+      GRPC_LISTEN_PORT: 3101
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM otel/opentelemetry-collector-contrib:0.113.0 AS otel
+        FROM grafana/loki:3.2.1 AS loki
+        FROM busybox:latest
+        WORKDIR /bin
+        COPY --from=otel /otelcol-contrib .
+        COPY --from=loki /usr/bin/loki .
+        ENTRYPOINT [/entrypoint]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./grafana.loki.entrypoint.sh:/entrypoint:ro
+      - ./grafana.loki.config.yml:/etc/config/loki.yml:ro
+      - ./otelcol-contrib.exec.sh:/otelcol-contrib.exec.sh:ro
+      - ./otelcol-contrib.sidecar.config.yml:/etc/config/otelcol-contrib.yml:ro
+      - ./.volume/data/grafana-loki-all/var/lib/otelcol-contrib:/var/lib/otelcol-contrib
+      - ./.volume/data/grafana-loki-all/var/lib/loki:/var/lib/loki
+      - ./.volume/data/grafana-loki-all/var/log/loki:/var/log/loki
+    secrets:
+      - minio.host
+      - minio.port
+      - minio.region
+      - minio.loki-bucket-blocks
+      - minio.loki-bucket-ruler
+      - minio.loki-accesskey
+      - minio.loki-secretkey
+    depends_on: { minio: { condition: service_healthy } }
+  mimir-all: # ---------------------------------------------------------------------------------------------------------
+    extends: { service: _ }
+    profiles: [monolithic, mimir]
+    ports: [3200:3200]
+    environment:
+      SERVICE: mimir
+      TARGET: all
+      HTTP_LISTEN_PORT: 3200
+      GRPC_LISTEN_PORT: 3201
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM otel/opentelemetry-collector-contrib:0.113.0 AS otel
+        FROM grafana/mimir:2.14.2 AS mimir
+        FROM busybox:latest
+        WORKDIR /bin
+        COPY --from=otel /otelcol-contrib .
+        COPY --from=mimir /bin/mimir .
+        ENTRYPOINT [/entrypoint]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./grafana.mimir.entrypoint.sh:/entrypoint:ro
+      - ./grafana.mimir.config.yml:/etc/config/mimir.yml:ro
+      - ./otelcol-contrib.exec.sh:/otelcol-contrib.exec.sh:ro
+      - ./otelcol-contrib.sidecar.config.yml:/etc/config/otelcol-contrib.yml:ro
+      - ./.volume/data/grafana-mimir-all/var/lib/otelcol-contrib:/var/lib/otelcol-contrib
+      - ./.volume/data/grafana-mimir-all/var/lib/mimir:/var/lib/mimir
+      - ./.volume/data/grafana-mimir-all/var/log/mimir:/var/log/mimir
+    secrets:
+      - minio.host
+      - minio.port
+      - minio.region
+      - minio.mimir-bucket-alertmanager
+      - minio.mimir-bucket-blocks
+      - minio.mimir-bucket-ruler
+      - minio.mimir-accesskey
+      - minio.mimir-secretkey
+    depends_on: { minio: { condition: service_healthy } }
+  pyroscope-all: # -----------------------------------------------------------------------------------------------------
+    extends: { service: _ }
+    profiles: [monolithic, pyroscope]
+    ports: [3400:3400]
+    environment:
+      SERVICE: pyroscope
+      TARGET: all
+      HTTP_LISTEN_PORT: 3300
+      GRPC_LISTEN_PORT: 3301
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM otel/opentelemetry-collector-contrib:0.113.0 AS otel
+        FROM grafana/pyroscope:1.10.0 AS pyroscope
+        FROM busybox:latest
+        WORKDIR /bin
+        COPY --from=otel /otelcol-contrib .
+        COPY --from=pyroscope /usr/bin/pyroscope .
+        ENTRYPOINT [/entrypoint]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./grafana.pyroscope.entrypoint.sh:/entrypoint:ro
+      - ./grafana.pyroscope.config.yml:/etc/config/pyroscope.yml:ro
+      - ./otelcol-contrib.exec.sh:/otelcol-contrib.exec.sh:ro
+      - ./otelcol-contrib.sidecar.config.yml:/etc/config/otelcol-contrib.yml:ro
+      - ./.volume/data/grafana-pyroscope-all/var/lib/otelcol-contrib:/var/lib/otelcol-contrib
+      - ./.volume/data/grafana-pyroscope-all/var/lib/pyroscope:/var/lib/pyroscope
+      - ./.volume/data/grafana-pyroscope-all/var/log/pyroscope:/var/log/pyroscope
+    secrets:
+      - minio.host
+      - minio.port
+      - minio.region
+      - minio.pyroscope-bucket-blocks
+      - minio.pyroscope-accesskey
+      - minio.pyroscope-secretkey
+    depends_on: { minio: { condition: service_healthy } }
+  tempo-all: # ---------------------------------------------------------------------------------------------------------
+    extends: { service: _ }
+    profiles: [monolithic, tempo]
+    ports: [3300:3300, "4317", "4318", "14317", "14318"]
+    environment:
+      SERVICE: tempo
+      TARGET: all
+      HTTP_LISTEN_PORT: 3300
+      GRPC_LISTEN_PORT: 3301
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM otel/opentelemetry-collector-contrib:0.113.0 AS otel
+        FROM grafana/tempo:2.6.1 AS tempo
+        FROM busybox:latest
+        WORKDIR /bin
+        COPY --from=otel /otelcol-contrib .
+        COPY --from=tempo /tempo .
+        ENTRYPOINT [/entrypoint]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./grafana.tempo.entrypoint.sh:/entrypoint:ro
+      - ./grafana.tempo.config.yml:/etc/config/tempo.yml:ro
+      - ./otelcol-contrib.exec.sh:/otelcol-contrib.exec.sh:ro
+      - ./otelcol-contrib.sidecar.config.yml:/etc/config/otelcol-contrib.yml:ro
+      - ./.volume/data/grafana-tempo-all/var/lib/otelcol-contrib:/var/lib/otelcol-contrib
+      - ./.volume/data/grafana-tempo-all/var/lib/tempo:/var/lib/tempo
+      - ./.volume/data/grafana-tempo-all/var/log/tempo:/var/log/tempo
+    secrets:
+      - minio.host
+      - minio.port
+      - minio.region
+      - minio.tempo-bucket-blocks
+      - minio.tempo-accesskey
+      - minio.tempo-secretkey
+    depends_on: { minio: { condition: service_healthy } }
+secrets: # -------------------------------------------------------------------------------------------------------------
+  minio.rootuser: { file: ./.secret/.minio.rootuser }
+  minio.rootpass: { file: ./.secret/.minio.rootpass }
+  minio.host: { file: ./.secret/.minio.host }
+  minio.port: { file: ./.secret/.minio.port }
+  minio.region: { file: ./.secret/.minio.region }
+  minio.loki-bucket-blocks: { file: ./.secret/.minio.loki-bucket-blocks }
+  minio.loki-bucket-ruler: { file: ./.secret/.minio.loki-bucket-ruler }
+  minio.loki-accesskey: { file: ./.secret/.minio.loki-accesskey }
+  minio.loki-secretkey: { file: ./.secret/.minio.loki-secretkey }
+  minio.mimir-bucket-alertmanager:
+    { file: ./.secret/.minio.mimir-bucket-alertmanager }
+  minio.mimir-bucket-blocks: { file: ./.secret/.minio.mimir-bucket-blocks }
+  minio.mimir-bucket-ruler: { file: ./.secret/.minio.mimir-bucket-ruler }
+  minio.mimir-accesskey: { file: ./.secret/.minio.mimir-accesskey }
+  minio.mimir-secretkey: { file: ./.secret/.minio.mimir-secretkey }
+  minio.pyroscope-bucket-blocks:
+    { file: ./.secret/.minio.pyroscope-bucket-blocks }
+  minio.pyroscope-accesskey: { file: ./.secret/.minio.pyroscope-accesskey }
+  minio.pyroscope-secretkey: { file: ./.secret/.minio.pyroscope-secretkey }
+  minio.tempo-bucket-blocks: { file: ./.secret/.minio.tempo-bucket-blocks }
+  minio.tempo-accesskey: { file: ./.secret/.minio.tempo-accesskey }
+  minio.tempo-secretkey: { file: ./.secret/.minio.tempo-secretkey }

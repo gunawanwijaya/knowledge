@@ -1,0 +1,91 @@
+service:
+  telemetry: # service.telemetry ---------------------------------------------------------------------------------------
+    logs:
+      level: debug # debug, info, warn, error
+      encoding: json # console, json
+    metrics:
+      level: detailed # none, basic, normal, detailed
+    traces:
+      processors:
+        - batch:
+            exporter:
+              otlp: { endpoint: http://127.0.0.1:14317, protocol: grpc/protobuf, insecure: true }
+  extensions: # service.extensions -------------------------------------------------------------------------------------
+    [pprof, zpages, file_storage/filelog]
+  pipelines: # service.pipelines ---------------------------------------------------------------------------------------
+    logs:
+      receivers: [filelog]
+      processors: [batch, memory_limiter, resourcedetection]
+      exporters: [otlphttp/loki]
+    metrics:
+      receivers: [otlp, prometheus]
+      processors: [batch, memory_limiter, resourcedetection]
+      exporters: [otlphttp/mimir]
+    traces:
+      receivers: [otlp]
+      processors: [batch, memory_limiter, resourcedetection]
+      exporters: [otlp/tempo]
+
+extensions:
+  pprof: # extensions.pprof --------------------------------------------------------------------------------------------
+    endpoint: 127.0.0.1:1777
+  zpages: # extensions.zpages ------------------------------------------------------------------------------------------
+    endpoint: 127.0.0.1:55679
+  file_storage/filelog: # extensions.file_storage/filelog --------------------------------------------------------------
+    directory: /var/lib/otelcol-contrib/file_storage/filelog
+    timeout: 10s
+    fsync: true
+    create_directory: true
+
+receivers:
+  otlp: # receivers.otlp -----------------------------------------------------------------------------------------------
+    protocols:
+      grpc: { endpoint: 127.0.0.1:14317, include_metadata: true }
+      http: { endpoint: 127.0.0.1:14318, include_metadata: true }
+  filelog: # receivers.filelog -----------------------------------------------------------------------------------------
+    include:
+      # - "/var/log/**/*.jsonl"
+      - "/var/log/loki/loki.jsonl"
+      - "/var/log/mimir/mimir.jsonl"
+      - "/var/log/tempo/tempo.jsonl"
+      - "/var/log/pyroscope/pyroscope.jsonl"
+    start_at: beginning
+    # delete_after_read: true
+    acquire_fs_lock: true
+    attributes: { service.name: loki }
+    resource: {}
+    operators: # receivers.filelog.operators
+      - { type: json_parser }
+    storage: file_storage/filelog
+  prometheus: # receivers.prometheus -----------------------------------------------------------------------------------
+    config:
+      scrape_configs: # receivers.prometheus.config.scrape_configs
+        - job_name: otelcol-contrib
+          static_configs:
+            - targets: [127.0.0.1:8888]
+
+processors:
+  batch: # processors.batch --------------------------------------------------------------------------------------------
+    # >> Data sources: traces, metrics, logs
+    send_batch_size: 768
+    send_batch_max_size: 768
+  memory_limiter: # processors.memory_limiter --------------------------------------------------------------------------
+    # >> Data sources: traces, metrics, logs
+    check_interval: 5s
+    limit_mib: 400
+    spike_limit_mib: 200
+  resourcedetection: { detectors: [env, system, docker] }
+
+exporters:
+  otlphttp/loki: # exporters.loki --------------------------------------------------------------------------------------
+    tls: { insecure: true }
+    endpoint: http://loki-all:3100/otlp
+    headers: { x-scope-orgid: org1 }
+  otlphttp/mimir: # exporters.mimir ------------------------------------------------------------------------------------
+    tls: { insecure: true }
+    endpoint: http://mimir-all:3200/otlp
+    headers: { x-scope-orgid: org1 }
+  otlp/tempo: # exporters.tempo ----------------------------------------------------------------------------------------
+    tls: { insecure: true }
+    endpoint: tempo-all:4317
+    headers: { x-scope-orgid: org1 }

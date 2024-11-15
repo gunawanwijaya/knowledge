@@ -1,0 +1,48 @@
+# https://grafana.com/docs/loki/latest/configure/#supported-contents-and-default-values-of-lokiyaml
+
+server:
+  log_level: debug # debug, info, warn, error
+  log_format: json # logfmt, json
+# ----------------------------------------------------------------------------------------------------------------------
+ruler:
+  rule_path: /var/lib/loki/prom-rules
+  wal: { dir: /var/lib/loki/ruler-wal }
+  storage:
+    type: local
+    local: { directory: /var/lib/loki/rules }
+    s3: { insecure: true, s3forcepathstyle: true }
+  # enable_api: true
+  # enable_sharding: true
+  # evaluation: { mode: remote }
+# ----------------------------------------------------------------------------------------------------------------------
+ingester:
+  lifecycler:
+    tokens_file_path: /var/lib/loki/ingester-tokens
+  wal: { dir: /var/lib/loki/ingester-wal, enabled: true }
+  shutdown_marker_path: /var/lib/loki/ingester-shutdown-marker
+# ----------------------------------------------------------------------------------------------------------------------
+storage_config:
+  aws: { insecure: true, s3forcepathstyle: true }
+  filesystem:
+  tsdb_shipper:
+    active_index_directory: /var/lib/loki/tsdb-index
+    cache_location: /var/lib/loki/tsdb-cache
+# ----------------------------------------------------------------------------------------------------------------------
+schema_config:
+  configs:
+    - from: 2024-03-29
+      store: tsdb
+      object_store: s3
+      schema: v13
+      index: { prefix: index_, period: 24h }
+      chunks: { prefix: chunk_, period: 24h }
+# ----------------------------------------------------------------------------------------------------------------------
+compactor:
+  working_directory: /var/lib/loki/compactor
+# ----------------------------------------------------------------------------------------------------------------------
+analytics: { reporting_enabled: false }
+common:
+  replication_factor: 1
+  ring:
+    kvstore: { store: inmemory }
+    tokens_file_path: /var/lib/loki/common-tokens
