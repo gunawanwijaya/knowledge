@@ -1,0 +1,87 @@
+services:
+  _:
+    profiles: [_]
+    user: ${UID}:${GID}
+    entrypoint: [/entrypoint]
+    restart: no
+    # set shared memory limit when using docker-compose
+    shm_size: 128mb
+    # or set shared memory limit when deploy via swarm stack
+    #volumes:
+    #  - type: tmpfs
+    #    target: /dev/shm
+    #    tmpfs:
+    #      size: 134217728 # 128*2^20 bytes = 128Mb
+    environment:
+      TZ: Asia/Jakarta
+      UID: ${UID}
+      GID: ${GID}
+      LANG: en_US.utf8
+      PGDATA: /var/lib/postgres/data
+      STDOUT: /dev/stdout
+      # STDOUT: /dev/null
+  postgres-primary: # --------------------------------------------------------------------------------------------------
+    extends: { service: _ }
+    profiles: [single, ha]
+    image: postgres:15-alpine
+    ports: [5432:5432]
+    environment:
+      POSTGRES_DB_FILE: /run/secrets/postgres_database
+      POSTGRES_USER_FILE: /run/secrets/postgres_username
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    healthcheck:
+      test: [CMD-SHELL, /healthcheck]
+      interval: 3s
+      timeout: 3s
+      retries: 9
+    volumes:
+      - ./postgres.conf:/etc/config/postgres.conf:ro
+      - ./postgres-primary-entrypoint.sh:/entrypoint:ro
+      - ./postgres-primary-healthcheck.sh:/healthcheck:ro
+      - ./postgres-primary-init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+      - ./../../.volume/postgres-primary/var/lib:/var/lib/postgres
+      - ./../../.volume/postgres-primary/var/log:/var/log/postgres
+    secrets:
+      - postgres_database
+      - postgres_username
+      - postgres_password
+      - postgres__ro_password
+      - postgres__ro_username
+      - postgres__rp_password
+      - postgres__rp_slotname
+      - postgres__rp_username
+      - sonar_database
+      - sonar_username
+      - sonar_password
+  postgres-standby: # --------------------------------------------------------------------------------------------------
+    extends: { service: _ }
+    profiles: [ha]
+    image: postgres:15-alpine
+    ports: [5433:5432]
+    volumes:
+      # - ./postgres.conf:/etc/config/postgres.conf:ro
+      - ./postgres-standby-entrypoint.sh:/entrypoint:ro
+      - ./../../.volume/postgres-standby/var/lib:/var/lib/postgres
+      - ./../../.volume/postgres-standby/var/log:/var/log/postgres
+    secrets:
+      - postgres__rp_username
+      - postgres__rp_password
+      - postgres__rp_slotname
+    depends_on: { postgres-primary: { condition: service_healthy } }
+  # adminer:
+  #   image: adminer
+  #   restart: always
+  #   ports:
+  #     - 8080:8080
+secrets: # -------------------------------------------------------------------------------------------------------------
+  postgres__ro_password: { file: ./../../.secret/postgres__ro_password }
+  postgres__ro_username: { file: ./../../.secret/postgres__ro_username }
+  postgres__rp_password: { file: ./../../.secret/postgres__rp_password }
+  postgres__rp_slotname: { file: ./../../.secret/postgres__rp_slotname }
+  postgres__rp_username: { file: ./../../.secret/postgres__rp_username }
+  postgres_database: { file: ./../../.secret/postgres_database }
+  postgres_password: { file: ./../../.secret/postgres_password }
+  postgres_username: { file: ./../../.secret/postgres_username }
+  sonar_database: { file: ./../../.secret/sonar_database }
+  sonar_password: { file: ./../../.secret/sonar_password }
+  sonar_username: { file: ./../../.secret/sonar_username }

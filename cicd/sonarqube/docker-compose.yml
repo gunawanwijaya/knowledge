@@ -1,0 +1,12 @@
+services:
+  sonarqube:
+    image: sonarqube:10.7.0-community
+    ports: [9999:9000]
+    environment:
+      SONAR_JDBC_URL: ${SONAR_JDBC_URL}
+      SONAR_JDBC_USERNAME: ${SONAR_JDBC_USERNAME}
+      SONAR_JDBC_PASSWORD: ${SONAR_JDBC_PASSWORD}
+    volumes:
+      - ./../../.volume/sonarqube/opt/data:/opt/sonarqube/data
+      - ./../../.volume/sonarqube/opt/exts:/opt/sonarqube/extensions
+      # - ./../../.volume/sonarqube/opt/logs:/opt/sonarqube/logs
