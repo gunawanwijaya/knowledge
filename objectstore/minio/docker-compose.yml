@@ -1,0 +1,38 @@
+services:
+  minio:
+    image: minio/minio:latest
+    ports: [9000:9000, 9001:9001]
+    volumes:
+      - ./docker-entrypoint.sh:/entrypoint:ro
+      - ./../../.volume/minio/mnt:/mnt
+    user: ${UID}:${GID}
+    restart: no
+    entrypoint: [/entrypoint]
+    healthcheck: { test: /healthcheck, interval: 2s, timeout: 7s, retries: 9 }
+    environment:
+      MC_JSON: 1
+      MC_QUIET: 1
+      MINIO_ROOT_USER_FILE: /run/secrets/minio_username
+      MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_password
+      MINIO_REGION: ${MINIO_REGION}
+      LOKI_ACCESS: ${LOKI_ACCESS}
+      LOKI_SECRET: ${LOKI_SECRET}
+      LOKI_BUCKET_BLOCKS: ${LOKI_BUCKET_BLOCKS}
+      LOKI_BUCKET_RULER: ${LOKI_BUCKET_RULER}
+      MIMIR_ACCESS: ${MIMIR_ACCESS}
+      MIMIR_SECRET: ${MIMIR_SECRET}
+      MIMIR_BUCKET_BLOCKS: ${MIMIR_BUCKET_BLOCKS}
+      MIMIR_BUCKET_RULER: ${MIMIR_BUCKET_RULER}
+      MIMIR_BUCKET_ALERTMANAGER: ${MIMIR_BUCKET_ALERTMANAGER}
+      TEMPO_ACCESS: ${TEMPO_ACCESS}
+      TEMPO_SECRET: ${TEMPO_SECRET}
+      TEMPO_BUCKET_BLOCKS: ${TEMPO_BUCKET_BLOCKS}
+      PYROSCOPE_ACCESS: ${PYROSCOPE_ACCESS}
+      PYROSCOPE_SECRET: ${PYROSCOPE_SECRET}
+      PYROSCOPE_BUCKET_BLOCKS: ${PYROSCOPE_BUCKET_BLOCKS}
+    secrets:
+      - minio_username
+      - minio_password
+secrets: # -------------------------------------------------------------------------------------------------------------
+  minio_username: { file: ./../../.secret/minio_username }
+  minio_password: { file: ./../../.secret/minio_password }

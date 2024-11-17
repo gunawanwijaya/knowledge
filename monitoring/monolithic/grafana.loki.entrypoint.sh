@@ -14,14 +14,10 @@ sleep .5 & /otelcol-contrib.exec.sh \
 & wait -n;
 if [ -r "${EXITCODE}" ]; then { CODE=$(cat ${EXITCODE}); [ ${CODE} -ge 0 ] && [ ${CODE} -le 127 ] && exit ${CODE}; } fi
 # ----------------------------------------------------------------------------------------------------------------------
-S3_HOST=$(cat /run/secrets/minio.host);
-S3_PORT=$(cat /run/secrets/minio.port);
-S3_REGION=$(cat /run/secrets/minio.region);
-S3_BUCKET_BLOCKS=$(cat /run/secrets/minio.loki-bucket-blocks);
-S3_BUCKET_RULER=$(cat /run/secrets/minio.loki-bucket-ruler);
-S3_ACCESS=$(cat /run/secrets/minio.loki-accesskey);
-S3_SECRET=$(cat /run/secrets/minio.loki-secretkey);
-S3_ENDPOINT="http://${S3_HOST}:${S3_PORT}"
+S3_BUCKET_BLOCKS=$(cat /run/secrets/loki__bucket_blocks);
+S3_BUCKET_RULER=$(cat /run/secrets/loki__bucket_ruler);
+S3_ACCESS=$(cat /run/secrets/loki_access);
+S3_SECRET=$(cat /run/secrets/loki_secret);
 RING_REPLICA=1
 RING_STORE="inmemory"
 COMPACTOR="http://loki-all:${HTTP_LISTEN_PORT}"

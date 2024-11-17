@@ -3,14 +3,14 @@
 # in the list to load a number of core modules and will enable single-binary
 # mode.
 # CLI flag: -target
-# target: "all"
+target: "all" # all, compactor, distributor, ingester, querier, store-gateway, query-frontend, query-scheduler
 
 # api:
 #   base-url: ""
 
 # ----------------------------------------------------------------------------------------------------------------------
 # https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#server
-# 
+#
 # The server block configures the HTTP and gRPC server of the launched
 # service(s).
 server:
@@ -23,44 +23,44 @@ server:
 
 # ----------------------------------------------------------------------------------------------------------------------
 # https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#distributor
-# 
+#
 # The distributor block configures the distributor.
 distributor:
 
 # ----------------------------------------------------------------------------------------------------------------------
 # https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#querier
-# 
+#
 # The querier block configures the querier.
 querier:
 
 # ----------------------------------------------------------------------------------------------------------------------
 # https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#query_frontend
-# 
+#
 # The query_frontend block configures the query-frontend.
 frontend:
 
 # ----------------------------------------------------------------------------------------------------------------------
 # https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#frontend_worker
-# 
+#
 # The frontend_worker block configures the frontend-worker.
 frontend_worker:
 
 # ----------------------------------------------------------------------------------------------------------------------
 # https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#limits
-# 
+#
 # The limits block configures default and per-tenant limits imposed by
 # components.
 limits:
 
 # ----------------------------------------------------------------------------------------------------------------------
 # https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#query_scheduler
-# 
+#
 # The query_scheduler block configures the query-scheduler.
 query_scheduler:
 
 # ----------------------------------------------------------------------------------------------------------------------
 # https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#ingester
-# 
+#
 # The ingester block configures the ingester.
 ingester:
   lifecycler:
@@ -69,7 +69,7 @@ ingester:
         store: "memberlist"
 # ----------------------------------------------------------------------------------------------------------------------
 # https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#store_gateway
-# 
+#
 # The store_gateway block configures the store-gateway.
 store_gateway:
   sharding_ring:
@@ -80,7 +80,7 @@ store_gateway:
 
 # ----------------------------------------------------------------------------------------------------------------------
 # https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#memberlist
-# 
+#
 # The memberlist block configures the Gossip memberlist.
 memberlist:
   abort_if_cluster_join_fails: false
@@ -103,18 +103,17 @@ runtime_config:
   # file: ""
 # ----------------------------------------------------------------------------------------------------------------------
 # https://grafana.com/docs/pyroscope/latest/configure-server/reference-configuration-parameters/#compactor
-# 
+#
 # The compactor block configures the compactor.
 compactor:
   # data_dir: "/data-compactor"
   sharding_ring:
-    kvstore: 
+    kvstore:
       store: "memberlist"
 
 storage:
   backend: s3
-  s3:
-    insecure: true
+  s3: { insecure: true }
   # storage_prefix: ""
 self_profiling:
   disable_push: true

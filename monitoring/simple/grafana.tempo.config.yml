@@ -5,7 +5,7 @@ multitenancy_enabled: false
 # Optional. Setting to true enables query filtering in tag value search API `/api/v2/search/<tag>/values`.
 # If filtering is enabled, the API accepts a query parameter `q` containing a TraceQL query,
 # and returns only tag values that match the query.
-autocomplete_filtering_enabled: true
+# autocomplete_filtering_enabled: true
 
 # Optional. String prefix for all http api endpoints. Must include beginning slash.
 # http_api_prefix: "/"
@@ -153,9 +153,7 @@ storage:
   trace:
     backend: s3 # options: gcs, s3, azure, local
     gcs: {}
-    s3:
-      region: ""
-      insecure: true
+    s3: { insecure: true }
     azure: {}
     blocklist_poll: 5m
     blocklist_poll_concurrency: 50

@@ -12,9 +12,9 @@ receivers:
     protocols:
       http: { endpoint: otelcol:4318 }
       grpc: { endpoint: otelcol:4317 }
-  prometheus:
-    config:
-      scrape_configs:
+  # prometheus:
+  #   config:
+  #     scrape_configs:
         # - job_name: minio-cluster
         #   static_configs:
         #     - targets: [minio:9000]
@@ -27,21 +27,21 @@ receivers:
         #   static_configs:
         #     - targets: [minio:9000]
         #   metrics_path: /minio/v2/metrics/resource
-        - job_name: otelcol
-          static_configs:
-            - targets: [otelcol:8888]
-        - job_name: grafana
-          static_configs:
-            - targets: [grafana:3000]
-        - job_name: loki
-          static_configs:
-            - targets: [loki-all:3100]
-        - job_name: tempo
-          static_configs:
-            - targets: [tempo-all:3300]
-        - job_name: mimir
-          static_configs:
-            - targets: [mimir-all:3200]
+        # - job_name: otelcol
+        #   static_configs:
+        #     - targets: [otelcol:8888]
+        # - job_name: grafana
+        #   static_configs:
+        #     - targets: [grafana:3000]
+        # - job_name: loki
+        #   static_configs:
+        #     - targets: [loki-all:3100]
+        # - job_name: tempo
+        #   static_configs:
+        #     - targets: [tempo-all:3300]
+        # - job_name: mimir
+        #   static_configs:
+        #     - targets: [mimir-all:3200]
         # - job_name: beyla
         #   static_configs:
         #     - targets: [localhost:6060]
@@ -63,8 +63,8 @@ processors:
 # - `mimir` > https://github.com/open-telemetry/opentelemetry-collector/tree/main/exporter/otlphttpexporter#otlphttp-exporter
 # ----------------------------------------------------------------------------------------------------------------------
 exporters:
-  logging:
-    verbosity: normal
+  debug:
+    verbosity: detailed
     sampling_initial: 5
     sampling_thereafter: 200
   otlphttp/loki:
@@ -96,7 +96,7 @@ service:
       encoding: json
     metrics: # https://github.com/open-telemetry/opentelemetry-collector/blob/7666eb0/config/service.go#L99-L111
       level: detailed
-      address: :8888
+      # address: :8888
   pipelines:
     logs:
       receivers: [otlp]
@@ -107,6 +107,6 @@ service:
       processors: [memory_limiter, batch]
       exporters: [otlp/tempo]
     metrics:
-      receivers: [otlp, prometheus]
+      receivers: [otlp]
       processors: [memory_limiter, batch]
       exporters: [otlphttp/mimir]

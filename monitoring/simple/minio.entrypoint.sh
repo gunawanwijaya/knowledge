@@ -34,19 +34,27 @@ if [ "mc" = "$1" ]; then # MINIO CLIENT SETUP ----------------------------------
         mc alias set "${ALIAS}" "http://0.0.0.0:9000" "${USER}" "${PASS}" >"${OUT}" 2>&1 || (sleep .33 && setup mc $N);
     fi
 elif [ -z $1 ]; then # BASE SETUP --------------------------------------------------------------------------------------
-    setup mc 5      && \
-    setup loki      && \
-    setup mimir     && \
-    setup tempo     && \
-    setup pyroscope && \
+    setup mc 5                  && \
+    setup loki blocks           && \
+    setup loki ruler            && \
+    setup mimir blocks          && \
+    setup mimir alertmanager    && \
+    setup mimir ruler           && \
+    setup tempo                 && \
+    setup pyroscope             && \
     echo 'echo "healthy"; exit 0' >"/healthcheck" && \
     mc admin update "${ALIAS}" -y >"${OUT}" 2>&1;
 
     /healthcheck >/dev/null 2>&1 && echo "${HEALTHY}";
 elif [ ! -z $1 ]; then # EACH SETUP ------------------------------------------------------------------------------------
-    local BUCKET=$(cat /run/secrets/minio.$1-bucket);
-    local ACCESS=$(cat /run/secrets/minio.$1-accesskey);
-    local SECRET=$(cat /run/secrets/minio.$1-secretkey);
+    local ACCESS="$(cat /run/secrets/minio.$1-accesskey)";
+    local SECRET="$(cat /run/secrets/minio.$1-secretkey)";
+    local BUCKET="";
+    if [ ! -z $2 ]; then
+        BUCKET="$(cat /run/secrets/minio.$1-bucket-$2)";
+    else
+        BUCKET="$(cat /run/secrets/minio.$1-bucket)";
+    fi
     local POLICY="admin-${BUCKET}";
 
     mc stat "${ALIAS}/${BUCKET}" >"${OUT}" 2>&1 || ( \

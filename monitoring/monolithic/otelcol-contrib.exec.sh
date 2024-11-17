@@ -22,6 +22,10 @@ exec_otel() {
   REPL="${REPL}\\n      - { type: add, field: resource.service.name, value: ${SVC} }";
   sed -i "s|${FIND}|${REPL}|" "${DST}";
 
+  local FIND=" # extensions.file_storage/filelog.directory";
+  local REPL=" /var/lib/${SVC}/otelcol-contrib/file_storage/filelog";
+  sed -i "s|${FIND}|${REPL}|" "${DST}";
+
   local FLAG="";
   FLAG="${FLAG}+filelog.allowHeaderMetadataParsing,";
   FLAG="${FLAG}+filelog.allowFileDeletion";

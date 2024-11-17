@@ -44,5 +44,6 @@ psql -v "ON_ERROR_STOP=1" -U "$POSTGRES_USER" -d "$POSTGRES_DB" <<-EOSQL
 EOSQL
 
 # ----------------------------------------------------------------------------------------------------------------------
-LINE="host replication ${POSTGRES_REPLICA_USER} all trust";
+# LINE="host replication ${POSTGRES_REPLICA_USER} all trust";
+LINE="host replication ${POSTGRES_REPLICA_USER} all scram-sha-256";
 grep -qxF "${LINE}" "${PGDATA}/pg_hba.conf" || echo "${LINE}" >> "${PGDATA}/pg_hba.conf";

@@ -1,7 +1,7 @@
 service:
   telemetry: # service.telemetry ---------------------------------------------------------------------------------------
     logs:
-      level: debug # debug, info, warn, error
+      level: warn # debug, info, warn, error
       encoding: json # console, json
     metrics:
       level: detailed # none, basic, normal, detailed
@@ -32,7 +32,7 @@ extensions:
   zpages: # extensions.zpages ------------------------------------------------------------------------------------------
     endpoint: 127.0.0.1:55679
   file_storage/filelog: # extensions.file_storage/filelog --------------------------------------------------------------
-    directory: /var/lib/otelcol-contrib/file_storage/filelog
+    directory: # extensions.file_storage/filelog.directory
     timeout: 10s
     fsync: true
     create_directory: true

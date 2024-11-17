@@ -18,10 +18,10 @@ writeRand(){
         local TRA="[:lower:]"; local TRB="[:upper:]";
     fi
 
-    [ ! -d ${DIR} ] && mkdir -p ${DIR};
-    [ ! -f "${DIR}/${FILE}" ] && \
-    echo -n "${PFIX}$(rand ${LEN})" | tr ${TRA} ${TRB} > "./${DIR}/${FILE}" && \
-    echo "./${DIR}/${FILE} created."
+    if [ ! -f "${DIR}/${FILE}" ]; then
+        echo -n "${PFIX}$(rand ${LEN})" | tr ${TRA} ${TRB} > "./${DIR}/${FILE}";
+        echo "./${DIR}/${FILE} created.";
+    fi
 }
 
 mkdir -p "./.secret";
@@ -41,7 +41,10 @@ writeRand 16 ".secret" ".minio.mimir-accesskey"     "mimir-";
 writeRand 16 ".secret" ".minio.pyroscope-accesskey" "pyroscope-";
 writeRand 16 ".secret" ".minio.tempo-accesskey"     "tempo-";
 
-writeRand 8 ".secret" ".minio.loki-bucket"      "loki-"         "toLower";
-writeRand 8 ".secret" ".minio.mimir-bucket"     "mimir-"        "toLower";
-writeRand 8 ".secret" ".minio.pyroscope-bucket" "pyroscope-"    "toLower";
-writeRand 8 ".secret" ".minio.tempo-bucket"     "tempo-"        "toLower";
+writeRand 8 ".secret" ".minio.loki-bucket-blocks"           "loki-blocks-"          "toLower";
+writeRand 8 ".secret" ".minio.loki-bucket-ruler"            "loki-ruler-"           "toLower";
+writeRand 8 ".secret" ".minio.mimir-bucket-blocks"          "mimir-blocks-"         "toLower";
+writeRand 8 ".secret" ".minio.mimir-bucket-alertmanager"    "mimir-alertmanager-"   "toLower";
+writeRand 8 ".secret" ".minio.mimir-bucket-ruler"           "mimir-ruler-"          "toLower";
+writeRand 8 ".secret" ".minio.pyroscope-bucket"             "pyroscope-"            "toLower";
+writeRand 8 ".secret" ".minio.tempo-bucket"                 "tempo-"                "toLower";
